@@ -1,0 +1,1144 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Training a sentiment classifier"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Skipping line 8836: expected 4 fields, saw 5\n",
+      "\n",
+      "Skipping line 535882: expected 4 fields, saw 7\n",
+      "\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "1.73944497108\n",
+      "(1578612, 2)\n",
+      "1578612\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style>\n",
+       "    .dataframe thead tr:only-child th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: left;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Sentiment</th>\n",
+       "      <th>SentimentText</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>0</td>\n",
+       "      <td>is so sad for my APL frie...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>0</td>\n",
+       "      <td>I missed the New Moon trail...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>1</td>\n",
+       "      <td>omg its already 7:30 :O</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>0</td>\n",
+       "      <td>.. Omgaga. Im sooo  im gunna CRy. I'...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>0</td>\n",
+       "      <td>i think mi bf is cheating on me!!!   ...</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Sentiment                                      SentimentText\n",
+       "0          0                       is so sad for my APL frie...\n",
+       "1          0                     I missed the New Moon trail...\n",
+       "2          1                            omg its already 7:30 :O\n",
+       "3          0            .. Omgaga. Im sooo  im gunna CRy. I'...\n",
+       "4          0           i think mi bf is cheating on me!!!   ..."
+      ]
+     },
+     "execution_count": 1,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "import pandas as pd\n",
+    "import time\n",
+    "import warnings\n",
+    "warnings.filterwarnings('ignore')\n",
+    "\n",
+    "start_time = time.time()\n",
+    "\n",
+    "dataset = pd.read_csv('data/Sentiment Analysis Dataset.csv',error_bad_lines=False)\n",
+    "del dataset[\"ItemID\"]\n",
+    "del dataset['SentimentSource']\n",
+    "\n",
+    "elapsed_time = time.time() - start_time\n",
+    "print elapsed_time\n",
+    "\n",
+    "print dataset.shape\n",
+    "print len(dataset)\n",
+    "dataset.head()\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style>\n",
+       "    .dataframe thead tr:only-child th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: left;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Sentiment</th>\n",
+       "      <th>SentimentText</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>0</td>\n",
+       "      <td>is so sad for my APL frie...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>0</td>\n",
+       "      <td>I missed the New Moon trail...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>1</td>\n",
+       "      <td>omg its already 7:30 :O</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>0</td>\n",
+       "      <td>.. Omgaga. Im sooo  im gunna CRy. I'...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>0</td>\n",
+       "      <td>i think mi bf is cheating on me!!!   ...</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Sentiment                                      SentimentText\n",
+       "0          0                       is so sad for my APL frie...\n",
+       "1          0                     I missed the New Moon trail...\n",
+       "2          1                            omg its already 7:30 :O\n",
+       "3          0            .. Omgaga. Im sooo  im gunna CRy. I'...\n",
+       "4          0           i think mi bf is cheating on me!!!   ..."
+      ]
+     },
+     "execution_count": 2,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#dataset[:10].iterrows()\n",
+    "\n",
+    "test_train = pd.DataFrame()\n",
+    "\n",
+    "test_train = dataset\n",
+    "test_train.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# preproccessing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "from nltk.tokenize import RegexpTokenizer\n",
+    "from nltk.corpus import stopwords\n",
+    "import HTMLParser # In Python 3.4+ import html \n",
+    "import nltk\n",
+    "from nltk.stem import PorterStemmer\n",
+    "from nltk.tokenize import sent_tokenize, word_tokenize\n",
+    "\n",
+    "ps = PorterStemmer()\n",
+    "\n",
+    "def Clean(unescaped_tweet):\n",
+    "    '''This function takes a tweet as input and returns a tokenizing list.'''\n",
+    "    \n",
+    "    tokenizer = RegexpTokenizer(r'\\w+')\n",
+    "    \n",
+    "    #tokenize words\n",
+    "    cleaned_tweet_tokens = tokenizer.tokenize(unescaped_tweet.lower())\n",
+    "    #remove stop words\n",
+    "    #cleaned_tweet_tokens = [word for word in cleaned_tweet_tokens if word not in stopwords.words('english')]\n",
+    "    \n",
+    "    #cleaned_tweet_tokens = [ ps.stem(w) for w in  cleaned_tweet_tokens]\n",
+    "    \n",
+    "    return cleaned_tweet_tokens"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "collapsed": true,
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "\n",
+    "# start_time = time.time()\n",
+    "# test_train['token'] = test_train['SentimentText'].apply(lambda tweet: Clean(tweet))\n",
+    "# test_train.head()\n",
+    "\n",
+    "# elapsed_time = time.time() - start_time\n",
+    "# print elapsed_time"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style>\n",
+       "    .dataframe thead tr:only-child th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: left;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Sentiment</th>\n",
+       "      <th>SentimentText</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>0</td>\n",
+       "      <td>is so sad for my APL frie...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>0</td>\n",
+       "      <td>I missed the New Moon trail...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>1</td>\n",
+       "      <td>omg its already 7:30 :O</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>0</td>\n",
+       "      <td>.. Omgaga. Im sooo  im gunna CRy. I'...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>0</td>\n",
+       "      <td>i think mi bf is cheating on me!!!   ...</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Sentiment                                      SentimentText\n",
+       "0          0                       is so sad for my APL frie...\n",
+       "1          0                     I missed the New Moon trail...\n",
+       "2          1                            omg its already 7:30 :O\n",
+       "3          0            .. Omgaga. Im sooo  im gunna CRy. I'...\n",
+       "4          0           i think mi bf is cheating on me!!!   ..."
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "test_train.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.feature_extraction.text import CountVectorizer\n",
+    "from sklearn.feature_extraction.text import TfidfVectorizer\n",
+    "\n",
+    "from nltk.stem.snowball import SnowballStemmer\n",
+    "import nltk\n",
+    "\n",
+    "stemmer = SnowballStemmer('english')\n",
+    "analyzer = TfidfVectorizer().build_analyzer()\n",
+    "\n",
+    "def stemmed_words(doc):\n",
+    "    return (stemmer.stem(w) for w in analyzer(doc))\n",
+    "\n",
+    "vect = TfidfVectorizer(analyzer=stemmed_words, \n",
+    "                       tokenizer=nltk.tokenize.casual.TweetTokenizer,\n",
+    "                       stop_words='english',\n",
+    "                       #min_df = 0.001, #dont include words that appear in less than x% of tweets\n",
+    "                       #max_df = 0.1\n",
+    "                      )\n",
+    "\n",
+    "#test stemmer\n",
+    "#print(vect.fit_transform(sm_set.head()[:10]))\n",
+    "#print(vect.get_feature_names())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.utils import shuffle"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "#keep only a sample\n",
+    "sm_set = pd.DataFrame(shuffle(test_train)[:100000]).reset_index(drop=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0                 @hannysimon I'm coming home today!! \n",
+       "1    gnite tworld! may you sleep well. i dont think...\n",
+       "2              @NateSchwab that's the thing she can't \n",
+       "3    and I want to see Drag Me To Hell again sooo b...\n",
+       "4    @Maineeventmnp AWWW tht sucks... where's my cu...\n",
+       "Name: SentimentText, dtype: object"
+      ]
+     },
+     "execution_count": 12,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "sm_set.SentimentText.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "255.079085827 sec to fit transform 1578612 samples\n"
+     ]
+    }
+   ],
+   "source": [
+    "# based on the text of each tweet, create a (sparse) matrix containing the occurencies of each word and store it into X.\n",
+    "# this is going to be our feature matrix, which we will give into the classifier to \"learn\" the sentiment.\n",
+    "\n",
+    "#narrow down the dataset\n",
+    "sm_set = test_train#[:100000]\n",
+    "\n",
+    "start_time = time.time()\n",
+    "#fit_transform is a method to create the feature matrix of the tweets based on word occurencies\n",
+    "X = vect.fit_transform(sm_set.SentimentText)\n",
+    "y = sm_set.Sentiment\n",
+    "\n",
+    "elapsed_time = time.time() - start_time\n",
+    "print elapsed_time,'sec to fit transform',len(sm_set),'samples'"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "636007\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IOPub data rate exceeded.\n",
+      "The notebook server will temporarily stop sending output\n",
+      "to the client in order to avoid crashing it.\n",
+      "To change this limit, set the config variable\n",
+      "`--NotebookApp.iopub_data_rate_limit`.\n"
+     ]
+    }
+   ],
+   "source": [
+    "print len(vect.get_feature_names())\n",
+    "print vect.get_feature_names()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.model_selection import train_test_split"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "#split the dataset in a training (X_train, y_train) and test dataset (X_test,y_test)\n",
+    "\n",
+    "X_train, X_test, y_train, y_test = train_test_split(\n",
+    "     X, y, test_size=0.33, random_state=42)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# train NaiveBayes without feature selection"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.naive_bayes import MultinomialNB"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.265272855759\n"
+     ]
+    }
+   ],
+   "source": [
+    "#train the classifier\n",
+    "start_time = time.time()\n",
+    "clf = MultinomialNB()\n",
+    "clf.fit(X_train, y_train)\n",
+    "\n",
+    "elapsed_time = time.time() - start_time\n",
+    "print elapsed_time"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[u'00', u'3p9pkr', u'6p3im', u'abail', u'amaneci', u'assistiu', u'benjaminblack', u'brendensteven', u'cathyrigbi', u'clickio', u'd_ryura', u'didntwork', u'ebert', u'explosivosr', u'friendstack', u'gotki', u'hesgettingamazingreview', u'ilube', u'jaybaer', u'jorgemudri', u'kennyl98', u'lall', u'lmmeng', u'manu', u'michaeal', u'moviesss', u'nenna', u'ohscreditunion', u'pentagramdream', u'pshawww', u'renna', u'sakura0_o', u'shaunswagg', u'someh', u'sumchi', u'thanickyj', u'tootexti', u'unvibr', u'wepppaaaaaaaaaaaaaaa', u'xseifer', u'\\u02c6\\xec\\u0153\\xbc\\xeb']\n"
+     ]
+    }
+   ],
+   "source": [
+    "print vect.get_feature_names()[::len(vect.get_feature_names())/40]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "636007"
+      ]
+     },
+     "execution_count": 21,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "len(vect.get_feature_names())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "TfidfVectorizer(analyzer=<function stemmed_words at 0x7fe09dfdc9b0>,\n",
+       "        binary=False, decode_error=u'strict', dtype=<type 'numpy.int64'>,\n",
+       "        encoding=u'utf-8', input=u'content', lowercase=True, max_df=1.0,\n",
+       "        max_features=None, min_df=1, ngram_range=(1, 1), norm=u'l2',\n",
+       "        preprocessor=None, smooth_idf=True, stop_words='english',\n",
+       "        strip_accents=None, sublinear_tf=False,\n",
+       "        token_pattern=u'(?u)\\\\b\\\\w\\\\w+\\\\b',\n",
+       "        tokenizer=<class nltk.tokenize.casual.TweetTokenizer at 0x7fe09e4d4870>,\n",
+       "        use_idf=True, vocabulary=None)"
+      ]
+     },
+     "execution_count": 22,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "vect"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.metrics import classification_report"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Results for 1057670 training samples and 520942 test samples (trained on 0.265273 sec)\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.74      0.82      0.78    260447\n",
+      "          1       0.80      0.72      0.75    260495\n",
+      "\n",
+      "avg / total       0.77      0.77      0.77    520942\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "print \"Results for %i training samples and %i test samples (trained on %f sec)\" %(len(y_train),len(y_test),elapsed_time)\n",
+    "print classification_report(y_test,clf.predict(X_test))\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# feature selection"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "By now, vect has a vocabulary including all words and we will trim that using a statistical method, such as chi2"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.feature_selection import chi2,f_classif,SelectPercentile"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "metadata": {
+    "collapsed": true,
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "y_train_bool = map(lambda x: x==1,y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<matplotlib.figure.Figure at 0x7fe0f7417950>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "pd.Series(f_classif(X_train,y_train_bool)[0]).plot()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\nYII=\n",
+      "text/plain": [
+       "<matplotlib.figure.Figure at 0x7fe094e55ed0>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "pd.Series(f_classif(X_train,y_train_bool)[1]).plot()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "selector = SelectPercentile(chi2, percentile=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "SelectPercentile(percentile=1, score_func=<function chi2 at 0x7fe09f0cc8c0>)"
+      ]
+     },
+     "execution_count": 31,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "selector.fit(X_train,y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "MultinomialNB(alpha=1.0, class_prior=None, fit_prior=True)"
+      ]
+     },
+     "execution_count": 32,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "clf.fit(selector.transform(X_train),y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "          0       0.77      0.77      0.77    260447\n",
+      "          1       0.77      0.77      0.77    260495\n",
+      "\n",
+      "avg / total       0.77      0.77      0.77    520942\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "#predict\n",
+    "results = clf.predict(selector.transform(X_test))\n",
+    "print classification_report(y_test,results)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# try different models"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "** Logistic Regression **"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.linear_model import LogisticRegression"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "clf = LogisticRegression('l2')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# fit a variable selector in our data\n",
+    "selector = SelectPercentile(chi2, percentile=10)\n",
+    "selector.fit(X_train,y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#fit the model\n",
+    "clf.fit(selector.transform(X_train),y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "#predict\n",
+    "results = clf.predict(selector.transform(X_test))\n",
+    "print classification_report(y_test,results)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Sentiment analysis in some sample sentences"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "sample_text = ['Aris is a bit dubtful about me being a smart ass',\n",
+    "               'aris doesnt love sklearn yet',\n",
+    "               'but he will definitely love it soon',\n",
+    "               'fuck','bad','amazing', 'this is a sentence',\n",
+    "               'this is a bad sentence',]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "vect.transform(sample_text)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "for i,sent in enumerate(sample_text):\n",
+    "    print sent,clf.predict(vect.transform(sample_text))[i]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# export our model"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 405,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(9, 25, 11, 30)"
+      ]
+     },
+     "execution_count": 405,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "time.localtime()[1:5]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 278,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "#save the clf classifier in a file to load it in a different notebook/at a different time\n",
+    "timestr = \"%i-%i_%i,%i\"%time.localtime()[1:5]\n",
+    "from sklearn.externals import joblib\n",
+    "joblib.dump(clf, 'trained models/'+'descr'+timestr+'.pkl') \n",
+    "joblib.dump(vect, 'trained models/vect'+'descr'+timestr+'.pkl') \n",
+    "\n",
+    "#load it later with:\n",
+    "#clf = joblib.load('NaiveBayesCl_67k_tweets.pkl') "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "import pickle\n",
+    "s = pickle.dumps(vect)\n",
+    "vec2 = pickle.loads(s)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python [conda env:USelections]",
+   "language": "python",
+   "name": "conda-env-USelections-py"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.13"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
